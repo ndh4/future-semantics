@@ -27,7 +27,7 @@
   #:binding-forms
   (λ (x) M #:refers-to x)
   (let (x V) M #:refers-to x)
-  (let (x M) M #:refers-to x)
+  (let (x M_1) M_2 #:refers-to x)
   
 ;; ??? How do we deal with non-lambda binding forms? (let)
   
