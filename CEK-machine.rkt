@@ -49,3 +49,45 @@
     [(touch PValue) PValue] ; i think this is a better definition of the third `touch` rule
     [(touch (ph p ∘)) ∘]
     [(touch (ph p V)) V])
+
+(define-metafunction PCEK
+    extend : x V E -> E
+    
+    [(extend x V ((x_1 V_1) ...)) ((x V) (x_1 V_1) ...)])
+
+(define-metafunction PCEK
+    lookup : x E -> V
+    
+    [(lookup x ((x V) (x_1 V_1) ...)) V]
+    [(lookup x ((y V) (x_1 V_1) ...))
+        (lookup x ((x_1 V_1) ...))])
+
+(define -->PCEK
+    (reduction-relation PCEK
+        
+        [-->
+            ((let (x c) M) E K)
+            (M (extend x c E) K)
+            bind-const]
+
+        [-->
+            ((let x y M) E K)
+            (M (extend x (lookup y E) E) K)
+            bind-var]
+
+        [-->
+            ((let (x (λ (y) M_1)) M_2) E K)
+            (M_2 (extend x ((λ (y) M_1) E) E) K) ; THIS NEEDS TO BE LOOKED @ BC I DIDN'T DO ANYTHING W/ E' LIKE THE PAPER SHOWS
+            bind-lam]
+
+        [-->
+            ((let (x (cons y z)) M) E K)
+            (M (extend x (cons (lookup y E) (lookup z E)) E) K)
+            bind-cons]
+
+        [-->
+            (x E_1 ((ar y M E_2) K))
+            (M (extend y (lookup x E_1) E_2) K)
+            return]
+        )
+    )
