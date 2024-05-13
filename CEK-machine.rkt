@@ -44,11 +44,11 @@
     [(unload (ph p V)) V])
 
 (define-metafunction PCEK
-    touch V -> PValueUCirc ; this uses the `PValueUCirc` type above
+    touch : V -> PValueUCirc ; this uses the `PValueUCirc` type above
     
-    [(touch PValue) PValue] ; i think this is a better definition of the third `touch` rule
     [(touch (ph p ∘)) ∘]
-    [(touch (ph p V)) V])
+    [(touch (ph p V)) V]
+    [(touch PValue) PValue]) ; i think this is a better definition of the third `touch` rule
 
 (define-metafunction PCEK
     extend : x V E -> E
