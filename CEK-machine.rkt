@@ -4,7 +4,7 @@
 
 (define-language PCEK
     (S ::= (M E K) error (f-let (p S) S))
-    (M ::= V ; copied from `C-machine.rkt`
+    (M N ::= V ; copied from `C-machine.rkt`
         (let (x V) M) ; Might need to remove this line
         (let (x (future M)) M)
         (let (x (car V)) M)
@@ -19,9 +19,11 @@
     (CL ::= ((λ (x) M) E))
     (Pair ::= (cons V V))
     (Ph-Obj ::= (ph p ∘) (ph p V))
+    (c ::= nil natural)
     (K ::= ϵ ((ar x M E) K) ((ar† x M E) K))
     (F (x E ϵ) error)
     (A ::= c procedure (cons A A))
+    (x y z ::= variable-not-otherwise-mentioned)
     #:binding-forms
     (λ (x) M #:refers-to x)
     (let (x V) M #:refers-to x)
@@ -62,32 +64,81 @@
     [(lookup x ((y V) (x_1 V_1) ...))
         (lookup x ((x_1 V_1) ...))])
 
-(define -->PCEK
-    (reduction-relation PCEK
-        
-        [-->
+(define-judgment-form PCEK
+    #:mode (-> I O)
+    #:contract (-> S S)
+
+    [
+        ---"bind-const"
+        (->
             ((let (x c) M) E K)
-            (M (extend x c E) K)
-            bind-const]
+            (M (extend x c E) K))]
+    
+    [
+        ---"bind-var"
+        (->
+            ((let (x y) M) E K)
+            (M (extend x (lookup y E) E) K))]
+    
+    [
+        ---"bind-lam"
+        (->
+            ((let (x (λ (y) M)) N) E K)
+            (N (extend x ((λ (y) M) E) E) K))]
 
-        [-->
-            ((let x y M) E K)
-            (M (extend x (lookup y E) E) K)
-            bind-var]
-
-        [-->
-            ((let (x (λ (y) M_1)) M_2) E K)
-            (M_2 (extend x ((λ (y) M_1) E) E) K) ; THIS NEEDS TO BE LOOKED @ BC I DIDN'T DO ANYTHING W/ E' LIKE THE PAPER SHOWS
-            bind-lam]
-
-        [-->
+    [
+        ---"bind-cons"
+        (->
             ((let (x (cons y z)) M) E K)
-            (M (extend x (cons (lookup y E) (lookup z E)) E) K)
-            bind-cons]
+            (M (extend x (cons (lookup y E) (lookup z E)) E) K))]
 
-        [-->
+    [
+        ---"return"
+        (->
             (x E_1 ((ar y M E_2) K))
-            (M (extend y (lookup x E_1) E_2) K)
-            return]
-        )
-    )
+            (M (extend y (lookup x E_1) E_1) K))])
+
+(define (load-PCEK p)
+    (cond
+        [(redex-match? PCEK M p)
+            (term (,p () ϵ))]
+        [else
+            (raise (format "load-PCEK: expected a valid PCEK program, got: ~a" p))]))
+
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 3)
+                (let (y 4)
+                    (cons x y))))))
+
+; (define -->PCEK
+;     (reduction-relation PCEK
+        
+;         [-->
+;             ((let (x c) M) E K)
+;             (M (extend x c E) K)
+;             bind-const]
+
+;         [-->
+;             ((let (x y) M) E K)
+;             (M (extend x (lookup y E) E) K)
+;             bind-var]
+
+;         [-->
+;             ((let (x (λ (y) M_1)) M_2) E K)
+;             (M_2 (extend x ((λ (y) M_1) E) E) K) ; THIS NEEDS TO BE LOOKED @ BC I DIDN'T DO ANYTHING W/ E' LIKE THE PAPER SHOWS
+;             bind-lam]
+
+;         [-->
+;             ((let (x (cons y z)) M) E K)
+;             (M (extend x (cons (lookup y E) (lookup z E)) E) K)
+;             bind-cons]
+
+;         [-->
+;             (x E_1 ((ar y M E_2) K))
+;             (M (extend y (lookup x E_1) E_2) K)
+;             return]
+;         )
+;     )
