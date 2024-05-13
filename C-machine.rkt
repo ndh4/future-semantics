@@ -80,3 +80,13 @@
          (not (redex-match? Λa (λ (y) N) (term V_1))))
         apply-error]))
 
+(define (load-C p)
+  (cond
+    [(redex-match? Λa M p) (term (term (,p hole)))]
+    [else (raise "load: expected a valid Λa program")]))
+
+(define-metafunction Λa unload : s -> A
+  [(unload c) c]
+  [(unload (λ (x) M)) procedure]
+  [(unload (cons V_1 V_2)) (cons (unload V_1) (unload V_2))])
+
