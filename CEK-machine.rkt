@@ -18,7 +18,7 @@
     (V ::= PValue Ph-Obj)
     (PValueUCirc ::= PValue ∘) ; i think this is needed for the `touch` definition
     (PValue ::= c x Cl Pair)
-    (CL ::= ((λ (x) M) E))
+    (Cl ::= ((λ (x) M) E))
     (Pair ::= (cons V V))
     (Ph-Obj ::= (ph p ∘) (ph p V))
     (c ::= nil natural)
@@ -92,6 +92,13 @@
     [(is-not-nil-or-circ nil) #false]
     [(is-not-nil-or-circ ∘) #false]
     [(is-not-nil-or-circ V) #true])
+
+(define-metafunction PCEK
+    is-not-cl-or-circ : V -> boolean
+    
+    [(is-not-cl-or-circ Cl) #false]
+    [(is-not-cl-or-circ ∘) #false]
+    [(is-not-cl-or-circ V) #true])
 
 ;; judgment forms
 
@@ -167,8 +174,20 @@
         (->
             ((let (x (if y M_1 M_2)) M_3) E K)
             (M_2 E ((ar x M_3 E) K)))]
-            
-    ; [---"apply"]
+
+    [
+        (where ((λ (x) N) E_2) (lookup y E_1))
+        ---"apply"
+        (->
+            ((let (x (apply y z)) M) E_1 K)
+            (N (extend x (lookup z E_1) E_2) ((ar x M E_1) K)))]
+
+    [
+        (side-condition (is-not-cl-or-circ (lookup y E)))
+        ---"apply-error"
+        (->
+            ((let (x (apply y z)) M) E K)
+            error)]
 
     [
         ---"future"
@@ -181,6 +200,8 @@
         (->
             (x E_1 ((ar† y M E_2) K))
             (M (extend y (lookup x E_1) E_2) K))]
+
+    ; [---"fork"]
 
     ; [---"join"]
 
