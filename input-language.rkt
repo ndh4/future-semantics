@@ -12,5 +12,6 @@
          (let (x (if y M M)) M)
          (let (x (apply y z)) M))
   (V ::= c x (λ (x) M) (cons x y))
-  (x y z ::= variable-not-otherwise-mentioned)
+  (x y z q r a b var ::=
+     variable-not-otherwise-mentioned)
   (c ::= nil natural))
