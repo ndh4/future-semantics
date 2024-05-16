@@ -6,7 +6,8 @@
 
 (define-language PCEK
     (S ::= (M E K) error (f-let (p S) S))
-    (M N ::= V ; copied from `C-machine.rkt`
+    (M N ::= ; copied from `C-machine.rkt`
+        x
         (let (x V) M) ; Might need to remove this line
         (let (x (future M)) M)
         (let (x (car V)) M)
@@ -62,6 +63,11 @@
     extend : x V E -> E
     
     [(extend x V ((x_1 V_1) ...)) ((x V) (x_1 V_1) ...)])
+
+; (define-metafunction PCEK
+;     extend-K : kappa K -> K
+    
+;     [(extend-K kappa (kappa_1 ...)) (kappa kappa_1 ...)])
 
 (define-metafunction PCEK
     lookup : x E -> V
@@ -201,9 +207,20 @@
             (x E_1 ((ar† y M E_2) K))
             (M (extend y (lookup x E_1) E_2) K))]
 
-    ; [---"fork"]
+    ; [
+    ;     (where p_1 (variable-not-in (E_2 kapp_2)))
+    ;     ---"fork"
+    ;     (->
+    ;         (M E_1 K_1 (K))
+    ;         )
+    ;     ]
 
-    ; [---"join"]
+    [
+        ---"join"
+        (->
+            (f-let (p (x E ϵ)) S)
+            (placeholder-substitute p (lookup x E) S))
+        ]
 
     [
         ---"join-error"
@@ -211,7 +228,12 @@
             (f-let (p error) S)
             error)]
     
-    ; [---"lift"]
+    ; [
+    ;     (side-condition (not-in-FP p_1 S_2))
+    ;     ---"lift"
+    ;     (->
+    ;         (f-let (p_2 (f-let (p_1 S_1) S_2)) S_3)
+    ;         (f-let (p_1 S_1) (f-let (p_2 S_2) S_3)))]
             )
 
 ;; load function
@@ -227,56 +249,71 @@
 ;     ->
 ;     (load-PCEK
 ;         (term
-;             (let (x 3)
-;                 (let (y 4)
-;                     (cons x y))))))
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 z))))))
 
 ; (traces
 ;     ->
-;     (load-PCEK (term
-;         (let (x 1)
-;             (let (y 2)
-;                 (let (z (cons x y))
-;                     (let (w (car z))
-;                         w)))))))
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (car z))
+;                     w)))))))
 
 ; (traces
 ;     ->
-;     (load-PCEK (term
-;         (let (x 1)
-;             (let (y 2)
-;                 (let (z (cons x y))
-;                     (let (w (car x))
-;                         w)))))))
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (cdr z))
+;                     w)))))))
 
 ; (traces
 ;     ->
-;     (load-PCEK (term
-;         (let (x 1)
-;             (let (y 2)
-;                 (let (z (cons x y))
-;                     (let (w (cdr z))
-;                         w)))))))
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (car x))
+;                     w)))))))
 
 ; (traces
 ;     ->
-;     (load-PCEK (term
-;         (let (x 1)
-;             (let (y 2)
-;                 (let (z (cons x y))
-;                     (let (w (cdr x))
-;                         w)))))))
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (cdr x))
+;                     w)))))))
+
+; ; (traces
+; ;     ->
+; ;     (load-PCEK (term
+; ;         (let (x nil)
+; ;             (let (y (if x 1 2))
+; ;                 y)))))
 
 ; (traces
 ;     ->
-;     (load-PCEK (term
-;         (let (x nil)
-;             (let (y (if x 1 2))
-;                 y)))))
+;     (load-PCEK
+;         (term
+;             (let (x 1) (let (y 2) (let (z nil)
+;                 (let (w (if z x y))
+;                     w)))))))
+
 
 ; (traces
 ;     ->
-;     (load-PCEK (term
-;         (let (x 2)
-;             (let (y (if x 1 2))
-;                 y)))))
+;     (load-PCEK
+;         (term
+;             (let (x 1) (let (y 2) (let (z 1)
+;                 (let (w (if z x y))
+;                     w)))))))
+
+
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 1) (let (y 2) (let (z nil)
+                (let (w (if z x y))
+                    (let (a (if w y x))
+                        a))))))))
