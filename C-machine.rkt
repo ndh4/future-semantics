@@ -1,6 +1,8 @@
 #lang racket
 
-(require redex)
+(require redex
+         "./input-language.rkt")
+
 
 (define-language Λa
   (S ::= M error)
@@ -12,7 +14,7 @@
         (let (x (if V M M)) M)
         (let (x (apply V V)) M)
         (let (x M) M))
-  (V ::= c x (λ (x) M) (cons x y))
+  (V ::= c x (λ (x) M) (cons V V))
   (F ::= V error)
   (A ::= c procedure (cons A A))
   (c ::= nil natural)
@@ -31,8 +33,8 @@
   (let (x M_1) M_2 #:refers-to x)
   )
 
-(redex-match Λa (let (x M_1) M_2) (term (let (x 3) x)))
-(redex-match Λa (let (x V) M_2) (term (let (x 3) x)))
+#;(redex-match Λa (let (x M_1) M_2) (term (let (x 3) x)))
+#;(redex-match Λa (let (x V) M_2) (term (let (x 3) x)))
 
 (define -->c
   (reduction-relation
@@ -82,11 +84,42 @@
 
 (define (load-C p)
   (cond
-    [(redex-match? Λa M p) (term (term (,p hole)))]
-    [else (raise "load: expected a valid Λa program")]))
+    [(redex-match? Λa-input M p) p]
+    [else (raise (format "load: expected a valid Λa input program, recieved ~a"
+                 p))]))
 
-(define-metafunction Λa unload : s -> A
+(define-metafunction Λa unload : V -> A
+  [(unload error) error]
   [(unload c) c]
   [(unload (λ (x) M)) procedure]
   [(unload (cons V_1 V_2)) (cons (unload V_1) (unload V_2))])
 
+(define (eval p)
+  (define arr*-result
+    (apply-reduction-relation*
+      -->c
+      (load-C p)))
+     #;(printf "arr-result: ~a~n" arr*-result)
+  (cond
+    [(= 1 (length arr*-result))
+     (define the-result (first arr*-result))
+     #;(printf "the-result: ~a~n" the-result)
+     #;(traces -->c p)
+     (term (unload ,the-result))]
+    [else
+     (raise "more than one result: ~a" arr*-result)]))
+
+  
+(eval (term (let (x 3) x)))
+
+(eval (term (let (x 12)
+              (let (y (λ (z) z))
+                (let (z (apply y x))
+                  z)))))
+
+(eval (term (let (x 12)
+              (let (y 13)
+                (let (z nil)
+                  (let (q (cons y z))
+                    (let (r (cons x q))
+                      (let (y (if z x y)) y))))))))
