@@ -23,8 +23,9 @@
     (Pair ::= (cons V V))
     (Ph-Obj ::= (ph p ∘) (ph p V))
     (c ::= nil natural)
-    (K ::= ϵ ((ar x M E) K) ((ar† x M E) K))
-    (F (x E ϵ) error)
+    (K ::= ϵ (kappa K))
+    (kappa ::= (ar x M E) (ar† x M E))
+    (F ::= (x E ϵ) error)
     (A ::= c procedure (cons A A))
     (p x y z ::= variable-not-otherwise-mentioned)
     #:binding-forms
@@ -78,10 +79,37 @@
 
 ;; placeholder substitution
 
-; (define-metafunction PCEK
-;     substitute-S : S 
+(define-metafunction PCEK
+    substitute-S : p V S -> S
     
-;     )
+    [(substitute-S p V (f-let (p S_1) S_2))
+        (f-let (p (substitute-S p V S_1)) S_2)]
+    [(substitute-S p_1 V (f-let (p_2 S_1) S_2))
+        (f-let (p_2 (substitute-S p V S_1)) (substitute-S p V S_2))]
+        
+    [(substitute-S p V (M E K)) (M (substitute-E p V E) (substitute-K p V E))]
+
+    [(substitute-S p V error) error])
+
+(define-metafunction PCEK
+    substitute-E : p V E -> E
+    
+    [(substitute-E p V ϵ) ϵ]
+    
+    [(substitute-E p V E)
+        (ph p V)
+        (where (ph p ∘) (lookup x E))
+        or
+        (lookup x E)])
+
+(define-metafunction PCEK
+    substitute-K : p V K -> K
+
+    [(substitute-K p V ((ar x M E) K))
+        ((ar x M (substitute-E p V E)) (substitute-K p V K))]
+
+    [(substitute-K p V ((ar† x M E) K))
+        ((ar† x M (substitute-E p V E)) (substitute-K p V K))])
 
 ;; side conditions
 
@@ -207,20 +235,20 @@
             (x E_1 ((ar† y M E_2) K))
             (M (extend y (lookup x E_1) E_2) K))]
 
-    ; [
-    ;     (where p_1 (variable-not-in (E_2 kapp_2)))
-    ;     ---"fork"
-    ;     (->
-    ;         (M E_1 K_1 (K))
-    ;         )
-    ;     ]
+    [
+        (where p (variable-not-in (E_2 K_2)))
+        ---"fork"
+        (->
+            (M E_1 (kappa_1 ((ar† x N E_2) K_2)))
+            (f-let
+                (p (M E_1 (kappa_1 ϵ)))
+                (N (extend x (ph p ∘) E_2) K_2)))]
 
     [
         ---"join"
         (->
             (f-let (p (x E ϵ)) S)
-            (placeholder-substitute p (lookup x E) S))
-        ]
+            (substitute-S p (lookup x E) S))]
 
     [
         ---"join-error"
@@ -309,11 +337,19 @@
 ;                     w)))))))
 
 
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 1) (let (y 2) (let (z nil)
-                (let (w (if z x y))
-                    (let (a (if w y x))
-                        a))))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 1) (let (y 2) (let (z nil)
+;                 (let (w (if z x y))
+;                     (let (a (if w y x))
+;                         a))))))))
+
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (future (let (a (car z)) a)))
+;                     w)))))))
