@@ -27,7 +27,8 @@
     (kappa ::= (ar x M E) (ar† x M E))
     (F ::= (x E ϵ) error)
     (A ::= c procedure (cons A A))
-    (p x y z ::= variable-not-otherwise-mentioned)
+    (p ::= number)
+    (x y z ::= variable-not-otherwise-mentioned)
     #:binding-forms
     (λ (x) M #:refers-to x)
     (let (x V) M #:refers-to x)
@@ -41,7 +42,14 @@
 ;; paper meta-functions
 
 (define-metafunction PCEK
-    unload : V -> A
+    unload-state : F -> A
+    
+    [(unload-state error) error]
+    [(unload-state (x E K))
+        (unload (lookup x E))])
+
+(define-metafunction PCEK
+ unload : V -> A
     
     [(unload c) c]
     [(unload ((λ (x) M) E)) procedure]
@@ -64,11 +72,6 @@
     extend : x V E -> E
     
     [(extend x V ((x_1 V_1) ...)) ((x V) (x_1 V_1) ...)])
-
-; (define-metafunction PCEK
-;     extend-K : kappa K -> K
-    
-;     [(extend-K kappa (kappa_1 ...)) (kappa kappa_1 ...)])
 
 (define-metafunction PCEK
     lookup : x E -> V
@@ -133,6 +136,140 @@
     [(is-not-cl-or-circ Cl) #false]
     [(is-not-cl-or-circ ∘) #false]
     [(is-not-cl-or-circ V) #true])
+
+(define-metafunction PCEK
+    not-in-FP : p S -> boolean
+    
+    [(not-in-FP p S)
+        (not (exists-in-FP p (FP S)))])
+
+(define-metafunction PCEK
+    exists-in-FP : p (p ...) -> boolean
+    
+    [(exists-in-FP p (p p_1 ...)) #true]
+    [(exists-in-FP p ()) #false]
+    [(exists-in-FP p (p_1 p_2 ...))
+        (exists-in-FP p (p_2 ...))])
+
+(define-metafunction PCEK
+    FP : S -> (p ...)
+    
+    [(FP error) ()]
+    [(FP (f-let (p S_1) S_2))
+        (union-FP
+            (FP S_1)
+            (minus-FP
+                p
+                (FP S_2)))]
+    [(FP (M E K))
+        (union-FP
+            (FP-M M E)
+            (FP-K K))])
+
+(define-metafunction PCEK
+    union-FP : (p ...) (p ...) -> (p ...)
+    
+    [(union-FP (p ...) ()) (p ...)]
+    [(union-FP (p_1 ...) (p_2 p_3 ...))
+        (union-FP (p_1 ... p_2) (p_3 ...))])
+
+(define-metafunction PCEK
+    minus-FP : p (p ...) -> (p ...)
+    
+    [(minus-FP p ()) ()]
+    [(minus-FP p (p_1 ... p p_2 ...)) (p_1 ... p_2 ...)]
+    [(minus-FP p (p_1 ...)) (p_1 ...)])
+
+(define-metafunction PCEK
+    FP-M : M E -> (p ...)
+    
+    [(FP-M x E) (FP-V (lookup x E))]
+    [(FP-M (let (x V) M))
+        (union-FP
+            (FP-V V)
+            (FP-M M))]
+    [(FP-M (let (x (future M_1)) M_2))
+        (union-FP
+            (FP-M M_1)
+            (FP-M M_2))]
+    [(FP-M (let (x (car V)) M))
+        (union-FP
+            (FP-V V)
+            (FP-M M))]
+    [(FP-M (let (x (cdr V)) M))
+        (union-FP
+            (FP-V V)
+            (FP-M M))]
+    [(FP-M (let (x (if V M_1 M_2)) M_3))
+        (union-FP
+            (FP-V V)
+            (FP-M M_3))]
+    [(FP-M (let (x (apply V_1 V_2)) M))
+        (union-FP
+            (union-FP
+                (FP-V V_1)
+                (FP-V V_2))
+            (FP-M M))]
+    [(FP-M (let (x M) M))
+        (union-FP
+            (FP-V V)
+            (FP-M M))])
+
+(define-metafunction PCEK
+    FP-V : V -> (p ...)
+    
+    [(FP-V PValueUCirc) ()]
+    [(FP-V Ph-Obj)
+        (FP-Ph-Obj Ph-Obj)])
+
+(define-metafunction PCEK
+    FP-Ph-Obj : Ph-Obj -> (p ...)
+    
+    [(FP-Ph-Obj (ph p ∘)) (p)]
+    [(FP-Ph-Obj (ph p V))
+        (union-FP
+            (FP-V V)
+            (p))])
+
+(define-metafunction PCEK
+    FP-K : K -> (p... )
+    
+    [(FP-K ϵ) ()]
+    [(FP-K (kappa K))
+        (union-FP
+            (FP-kappa kappa)
+            (FP-K K))])
+
+(define-metafunction PCEK
+    FP-kappa : kappa -> (p ...)
+    
+    [(FP-kappa (ar† x M E))
+        (union-FP
+            (FP-V (lookup x E))
+            (FP-M M E))]
+    [(FP-kappa (ar x M E))
+        (union-FP
+            (FP-V (lookup x E))
+            (FP-M M E))])
+
+(define-metafunction PCEK
+    placeholder-not-in-FP : (p ...) -> p
+    
+    [(placeholder-not-in-FP ()) 0]
+    [(placeholder-not-in-FP (p ...))
+        ,(+ (apply max (term (p ...))) 1)])
+
+(define-metafunction PCEK
+    maximum-in-FP : p (p ...) -> p
+    
+    [(maximum-in-FP p ()) p]
+    [(maximum-in-FP p_1 (p_2 p_3 ...))
+        (maximum-in-FP p_2 (p_3 ...))
+        (side-condition (> (term p_2) (term p_1)))
+        
+        or
+        
+        (maximum-in-FP p_1 (p_3 ...))])
 
 ;; judgment forms
 
@@ -236,7 +373,7 @@
             (M (extend y (lookup x E_1) E_2) K))]
 
     [
-        (where p (variable-not-in (E_2 K_2)))
+        (where p (placeholder-not-in-FP (E_2 K_2)))
         ---"fork"
         (->
             (M E_1 (kappa_1 ((ar† x N E_2) K_2)))
@@ -256,13 +393,34 @@
             (f-let (p error) S)
             error)]
     
-    ; [
-    ;     (side-condition (not-in-FP p_1 S_2))
-    ;     ---"lift"
-    ;     (->
-    ;         (f-let (p_2 (f-let (p_1 S_1) S_2)) S_3)
-    ;         (f-let (p_1 S_1) (f-let (p_2 S_2) S_3)))]
-            )
+    [
+        (side-condition (not-in-FP p_1 S_2))
+        ---"lift"
+        (->
+            (f-let (p_2 (f-let (p_1 S_1) S_2)) S_3)
+            (f-let (p_1 S_1) (f-let (p_2 S_2) S_3)))]
+
+    [
+        (-> S_1 S_3)
+        (-> S_2 S_4)
+        ---"parallel-both"
+        (->
+            (f-let (p S_1) S_2)
+            (f-let (p S_3) S_4))]
+
+    [
+        (-> S_1 S_3)
+        ---"parallel-inner"
+        (->
+            (f-let (p S_1) S_2)
+            (f-let (p S_3) S_2))]
+
+    [
+        (-> S_2 S_4)
+        ---"parallel-outer"
+        (->
+            (f-let (p S_1) S_2)
+            (f-let (p S_1) S_4))])
 
 ;; load function
 
@@ -273,83 +431,107 @@
         [else
             (raise (format "load-PCEK: expected a valid PCEK program, got: ~a" p))]))
 
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 3) (let (y 4) (let (z (cons x y))
-;                 z))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 3) (let (y 4) (let (z (cons x y))
+                z))))))
 
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 3) (let (y 4) (let (z (cons x y))
-;                 (let (w (car z))
-;                     w)))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 3) (let (y 4) (let (z (cons x y))
+                (let (w (car z))
+                    w)))))))
 
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 3) (let (y 4) (let (z (cons x y))
-;                 (let (w (cdr z))
-;                     w)))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 3) (let (y 4) (let (z (cons x y))
+                (let (w (cdr z))
+                    w)))))))
 
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 3) (let (y 4) (let (z (cons x y))
-;                 (let (w (car x))
-;                     w)))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 3) (let (y 4) (let (z (cons x y))
+                (let (w (car x))
+                    w)))))))
 
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 3) (let (y 4) (let (z (cons x y))
-;                 (let (w (cdr x))
-;                     w)))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 3) (let (y 4) (let (z (cons x y))
+                (let (w (cdr x))
+                    w)))))))
 
-; ; (traces
-; ;     ->
-; ;     (load-PCEK (term
-; ;         (let (x nil)
-; ;             (let (y (if x 1 2))
-; ;                 y)))))
-
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 1) (let (y 2) (let (z nil)
-;                 (let (w (if z x y))
-;                     w)))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 1) (let (y 2) (let (z nil)
+                (let (w (if z x y))
+                    w)))))))
 
 
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 1) (let (y 2) (let (z 1)
-;                 (let (w (if z x y))
-;                     w)))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 1) (let (y 2) (let (z 1)
+                (let (w (if z x y))
+                    w)))))))
 
 
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 1) (let (y 2) (let (z nil)
-;                 (let (w (if z x y))
-;                     (let (a (if w y x))
-;                         a))))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 1) (let (y 2) (let (z nil)
+                (let (w (if z x y))
+                    (let (a (if w y x))
+                        a))))))))
 
-; (traces
-;     ->
-;     (load-PCEK
-;         (term
-;             (let (x 3) (let (y 4) (let (z (cons x y))
-;                 (let (w (future (let (a (car z)) a)))
-;                     w)))))))
+(traces
+    ->
+    (load-PCEK
+        (term
+            (let (x 3) (let (y 4) (let (z (cons x y))
+                (let (w (future (let (a (car z)) a)))
+                    w)))))))
+
+(define (eval program reduce)
+    (let ([results (apply-reduction-relation* reduce (load-PCEK program))])
+        (cond
+            [(empty? results) 'diverges]
+            [else
+            (unless (= (length results) 1)
+                (writeln (format "WARNING: multiple results returned")))
+            (term
+                (unload-state
+                    ,(first results)))])))
+
+(define-term program
+    (let (x 3) (let (y 4) (let (z (cons x y))
+                (let (w (future (let (a (car z)) a)))
+                    w)))))
+
+(writeln
+    (apply-reduction-relation* -> (load-PCEK (term program))))
+
+(writeln
+    (eval (term program) ->))
+
+(writeln (term (FP-V
+    (ph 2 (ph 5 ∘)))))
+
+(writeln (term (placeholder-not-in-FP (FP-V
+    (ph 2 (ph 5 ∘))))))
+
+(writeln (term (maximum-in-FP -1 (FP-V
+    (ph 2 (ph 5 ∘))))))
