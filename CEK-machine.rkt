@@ -6,18 +6,18 @@
 
 (define-language PCEK
     (S ::= (M E K) error (f-let (p S) S))
-    (M N ::= ; copied from `C-machine.rkt`
+    (M N ::=
         x
-        (let (x V) M) ; Might need to remove this line
+        (let (x V) M)
         (let (x (future M)) M)
         (let (x (car V)) M)
         (let (x (cdr V)) M)
         (let (x (if V M M)) M)
         (let (x (apply V V)) M)
         (let (x M) M))
-    (E ::= ((x V) ...)) ; i think this is right
+    (E ::= ((x V) ...)) 
     (V ::= PValue Ph-Obj)
-    (PValueUCirc ::= PValue ∘) ; i think this is needed for the `touch` definition
+    (PValueUCirc ::= PValue ∘)
     (PValue ::= c x Cl Pair)
     (Cl ::= ((λ (x) M) E))
     (Pair ::= (cons V V))
@@ -60,11 +60,11 @@
     [(unload (ph p V)) V])
 
 (define-metafunction PCEK
-    touch : V -> PValueUCirc ; this uses the `PValueUCirc` type above
+    touch : V -> PValueUCirc
     
     [(touch (ph p ∘)) ∘]
     [(touch (ph p V)) V]
-    [(touch PValue) PValue]) ; i think this is a better definition of the third `touch` rule
+    [(touch PValue) PValue])
 
 ;; environment meta-functions
 
@@ -99,11 +99,16 @@
     
     [(substitute-E p V ϵ) ϵ]
     
-    [(substitute-E p V E)
-        (ph p V)
-        (where (ph p ∘) (lookup x E))
-        or
-        (lookup x E)])
+    [(substitute-E p V E) (replace-p-in-E p V () E)])
+
+(define-metafunction PCEK
+    replace-p-in-E : p V E E -> E
+    
+    [(replace-p-in-E p V E ()) E]
+    [(replace-p-in-E p V ((x_1 V_1) ...) ((x_2 (ph p ∘)) (x_3 V_3) ...))
+        (replace-p-in-E p V ((x_1 V_1) ... (x_2 (ph p V))) ((x_3 V_3) ...))]
+    [(replace-p-in-E p V ((x_1 V_1) ...) ((x_2 V_2) (x_3 V_3) ...))
+        (replace-p-in-E p V ((x_1 V_1) ... (x_2 V_2)) ((x_3 V_3) ...))])
 
 (define-metafunction PCEK
     substitute-K : p V K -> K
@@ -114,28 +119,7 @@
     [(substitute-K p V ((ar† x M E) K))
         ((ar† x M (substitute-E p V E)) (substitute-K p V K))])
 
-;; side conditions
-
-(define-metafunction PCEK
-    is-not-cons-or-circ : V -> boolean
-    
-    [(is-not-cons-or-circ (cons V_1 V_2)) #false]
-    [(is-not-cons-or-circ ∘) #false]
-    [(is-not-cons-or-circ V) #true])
-
-(define-metafunction PCEK
-    is-not-nil-or-circ : V -> boolean
-    
-    [(is-not-nil-or-circ nil) #false]
-    [(is-not-nil-or-circ ∘) #false]
-    [(is-not-nil-or-circ V) #true])
-
-(define-metafunction PCEK
-    is-not-cl-or-circ : V -> boolean
-    
-    [(is-not-cl-or-circ Cl) #false]
-    [(is-not-cl-or-circ ∘) #false]
-    [(is-not-cl-or-circ V) #true])
+;; free placeholders
 
 (define-metafunction PCEK
     not-in-FP : p S -> boolean
@@ -164,7 +148,8 @@
     [(FP (M E K))
         (union-FP
             (FP-M M E)
-            (FP-K K))])
+            (FP-K K)
+            (FP-E E))])
 
 (define-metafunction PCEK
     union-FP : (p ...) (p ...) -> (p ...)
@@ -183,7 +168,10 @@
 (define-metafunction PCEK
     FP-M : M E -> (p ...)
     
-    [(FP-M x E) (FP-V (lookup x E))]
+    [(FP-M x E)
+        (union-FP
+            (FP-V (lookup x E))
+            (FP-E E))]
     [(FP-M (let (x V) M))
         (union-FP
             (FP-V V)
@@ -245,12 +233,33 @@
     
     [(FP-kappa (ar† x M E))
         (union-FP
-            (FP-V (lookup x E))
+            (union-FP
+                (FP-V (lookup x E))
+                (FP-E E))
             (FP-M M E))]
     [(FP-kappa (ar x M E))
         (union-FP
-            (FP-V (lookup x E))
+            (union-FP
+                (FP-V (lookup x E))
+                (FP-E E))
             (FP-M M E))])
+
+(define-metafunction PCEK
+    fresh-placeholder : E K -> p
+    
+    [(fresh-placeholder E K) (placeholder-not-in-FP
+        (union-FP
+            (FP-E E)
+            (FP-K K)))])
+
+(define-metafunction PCEK
+    FP-E : E -> (p ...)
+    
+    [(FP-E ()) ()]
+    [(FP-E ((x_1 V_1) (x_2 V_2) ...))
+        (union-FP
+            (FP-V V_1)
+            (FP-E ((x_2 V_2) ...)))])
 
 (define-metafunction PCEK
     placeholder-not-in-FP : (p ...) -> p
@@ -259,17 +268,28 @@
     [(placeholder-not-in-FP (p ...))
         ,(+ (apply max (term (p ...))) 1)])
 
+;; side conditions
+
 (define-metafunction PCEK
-    maximum-in-FP : p (p ...) -> p
+    is-not-cons-or-circ : V -> boolean
     
-    [(maximum-in-FP p ()) p]
-    [(maximum-in-FP p_1 (p_2 p_3 ...))
-        (maximum-in-FP p_2 (p_3 ...))
-        (side-condition (> (term p_2) (term p_1)))
-        
-        or
-        
-        (maximum-in-FP p_1 (p_3 ...))])
+    [(is-not-cons-or-circ (cons V_1 V_2)) #false]
+    [(is-not-cons-or-circ ∘) #false]
+    [(is-not-cons-or-circ V) #true])
+
+(define-metafunction PCEK
+    is-not-nil-or-circ : V -> boolean
+    
+    [(is-not-nil-or-circ nil) #false]
+    [(is-not-nil-or-circ ∘) #false]
+    [(is-not-nil-or-circ V) #true])
+
+(define-metafunction PCEK
+    is-not-cl-or-circ : V -> boolean
+    
+    [(is-not-cl-or-circ Cl) #false]
+    [(is-not-cl-or-circ ∘) #false]
+    [(is-not-cl-or-circ V) #true])
 
 ;; judgment forms
 
@@ -373,7 +393,7 @@
             (M (extend y (lookup x E_1) E_2) K))]
 
     [
-        (where p (placeholder-not-in-FP (E_2 K_2)))
+        (where p (fresh-placeholder E_2 K_2))
         ---"fork"
         (->
             (M E_1 (kappa_1 ((ar† x N E_2) K_2)))
@@ -535,3 +555,8 @@
 
 (writeln (term (maximum-in-FP -1 (FP-V
     (ph 2 (ph 5 ∘))))))
+
+(writeln (term (minus-FP
+    1
+    (FP-V
+        (ph 2 (ph 1 (ph 5 ∘)))))))
