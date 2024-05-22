@@ -99,27 +99,80 @@
     (apply-reduction-relation*
       -->c
       (load-C p)))
-     #;(printf "arr-result: ~a~n" arr*-result)
   (cond
     [(= 1 (length arr*-result))
      (define the-result (first arr*-result))
-     #;(printf "the-result: ~a~n" the-result)
-     #;(traces -->c p)
      (term (unload ,the-result))]
     [else
      (raise "more than one result: ~a" arr*-result)]))
 
   
-(eval (term (let (x 3) x)))
+(test-equal (eval (term (let (x 3) x))) 3)
 
-(eval (term (let (x 12)
+(test-equal (eval (term (let (x 12)
               (let (y (λ (z) z))
                 (let (z (apply y x))
-                  z)))))
+                  z))))) 12)
 
-(eval (term (let (x 12)
+(test-equal (eval (term (let (x 12)
               (let (y 13)
                 (let (z nil)
                   (let (q (cons y z))
                     (let (r (cons x q))
-                      (let (y (if z x y)) y))))))))
+                      (let (other (if z x y)) other)))))))) 13)
+
+(test-equal (eval (term (let (x 3)
+              (let (y (future x)) y)))) 3)
+
+(test-equal (eval (term (let (x 3)
+              (let (y (future x)) y)))) 3)
+
+(test-equal (eval (term (let (x (future (let (a 3) a))) x))) 3)
+
+(test-equal (eval (term (let (x 12)
+              (let (y 13)
+                (let (z nil)
+                  (let
+                      (q
+                       (future
+                        (let
+                            (x
+                             (future
+                              (let
+                                  (a
+                                   (cons y z)) a))) x)))
+                    (let (r (cons x q))
+                      (let (other (if z x y)) other)))))))) 13)
+
+(test-equal (eval (term (let (x 12)
+              (let (y 13)
+                (let (z (cons y y))
+                  (let
+                      (q
+                       (future
+                        (let
+                            (x
+                             (future
+                              (let
+                                  (a
+                                   (cons y z)) a))) x)))
+                    (let (r (cons x q))
+                      (let (other (if z x y)) other)))))))) 12)
+
+(test-equal (eval (term (let (x (λ (y) z)) x))) 'procedure)
+
+(test-equal
+ (eval
+  (term
+   (let (x (λ (y) z))
+     (let (y (cons x x))
+        (let (z (cons y y)) z)))))
+ '(cons (cons procedure procedure) (cons procedure procedure)))
+
+(test-equal
+ (eval
+  (term
+   (let (x 42)
+     (let (y (cons x x))
+        (let (z (cons y y)) z)))))
+ '(cons (cons 42 42) (cons 42 42)))
