@@ -17,6 +17,7 @@
         (let (x M) M))
     (E ::= ((x V) ...)) 
     (V ::= PValue Ph-Obj)
+    (VUCirc ::= V ∘)
     (PValueUCirc ::= PValue ∘)
     (PValue ::= c x Cl Pair)
     (Cl ::= ((λ (x) M) E))
@@ -90,14 +91,12 @@
     [(substitute-S p_1 V (f-let (p_2 S_1) S_2))
         (f-let (p_2 (substitute-S p V S_1)) (substitute-S p V S_2))]
         
-    [(substitute-S p V (M E K)) (M (substitute-E p V E) (substitute-K p V E))]
+    [(substitute-S p V (M E K)) (M (substitute-E p V E) (substitute-K p V K))]
 
     [(substitute-S p V error) error])
 
 (define-metafunction PCEK
     substitute-E : p V E -> E
-    
-    [(substitute-E p V ϵ) ϵ]
     
     [(substitute-E p V E) (replace-p-in-E p V () E)])
 
@@ -112,6 +111,8 @@
 
 (define-metafunction PCEK
     substitute-K : p V K -> K
+
+    [(substitute-K p V ϵ) ϵ]
 
     [(substitute-K p V ((ar x M E) K))
         ((ar x M (substitute-E p V E)) (substitute-K p V K))]
@@ -220,7 +221,7 @@
             (p))])
 
 (define-metafunction PCEK
-    FP-K : K -> (p... )
+    FP-K : K -> (p ...)
     
     [(FP-K ϵ) ()]
     [(FP-K (kappa K))
@@ -271,21 +272,21 @@
 ;; side conditions
 
 (define-metafunction PCEK
-    is-not-cons-or-circ : V -> boolean
+    is-not-cons-or-circ : VUCirc -> boolean
     
     [(is-not-cons-or-circ (cons V_1 V_2)) #false]
     [(is-not-cons-or-circ ∘) #false]
     [(is-not-cons-or-circ V) #true])
 
 (define-metafunction PCEK
-    is-not-nil-or-circ : V -> boolean
+    is-not-nil-or-circ : VUCirc -> boolean
     
     [(is-not-nil-or-circ nil) #false]
     [(is-not-nil-or-circ ∘) #false]
     [(is-not-nil-or-circ V) #true])
 
 (define-metafunction PCEK
-    is-not-cl-or-circ : V -> boolean
+    is-not-cl-or-circ : VUCirc -> boolean
     
     [(is-not-cl-or-circ Cl) #false]
     [(is-not-cl-or-circ ∘) #false]
@@ -328,53 +329,53 @@
             (M (extend y (lookup x E_1) E_1) K))]
 
     [
-        (where (cons V_1 V_2) (lookup y E))
+        (where (cons V_1 V_2) (touch (lookup y E)))
         ---"car"
         (->
             ((let (x (car y)) M) E K)
             (M (extend x V_1 E) K))]
     [
-        (side-condition (is-not-cons-or-circ (lookup y E)))
+        (side-condition (is-not-cons-or-circ (touch (lookup y E))))
         ---"car-error"
         (->
             ((let (x (car y)) M) E K)
             error)]
 
     [
-        (where (cons V_1 V_2) (lookup y E))
+        (where (cons V_1 V_2) (touch (lookup y E)))
         ---"cdr"
         (->
             ((let (x (cdr y)) M) E K)
             (M (extend x V_2 E) K))]
     [
-        (side-condition (is-not-cons-or-circ (lookup y E)))
+        (side-condition (is-not-cons-or-circ (touch (lookup y E))))
         ---"cdr-error"
         (->
             ((let (x (cdr y)) M) E K)
             error)]
 
     [
-        (side-condition (is-not-nil-or-circ (lookup y E)))
+        (side-condition (is-not-nil-or-circ (touch (lookup y E))))
         ---"if-true"
         (->
             ((let (x (if y M_1 M_2)) M_3) E K)
             (M_1 E ((ar x M_3 E) K)))]
     [
-        (where nil (lookup y E))
+        (where nil (touch (lookup y E)))
         ---"if-false"
         (->
             ((let (x (if y M_1 M_2)) M_3) E K)
             (M_2 E ((ar x M_3 E) K)))]
 
     [
-        (where ((λ (x) N) E_2) (lookup y E_1))
+        (where ((λ (x) N) E_2) (touch (lookup y E_1)))
         ---"apply"
         (->
             ((let (x (apply y z)) M) E_1 K)
-            (N (extend x (lookup z E_1) E_2) ((ar x M E_1) K)))]
+            (N (extend x (touch (lookup z E_1)) E_2) ((ar x M E_1) K)))]
 
     [
-        (side-condition (is-not-cl-or-circ (lookup y E)))
+        (side-condition (is-not-cl-or-circ (touch (lookup y E))))
         ---"apply-error"
         (->
             ((let (x (apply y z)) M) E K)
@@ -451,79 +452,77 @@
         [else
             (raise (format "load-PCEK: expected a valid PCEK program, got: ~a" p))]))
 
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 3) (let (y 4) (let (z (cons x y))
-                z))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 z))))))
 
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 3) (let (y 4) (let (z (cons x y))
-                (let (w (car z))
-                    w)))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (car z))
+;                     w)))))))
 
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 3) (let (y 4) (let (z (cons x y))
-                (let (w (cdr z))
-                    w)))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (cdr z))
+;                     w)))))))
 
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 3) (let (y 4) (let (z (cons x y))
-                (let (w (car x))
-                    w)))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (car x))
+;                     w)))))))
 
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 3) (let (y 4) (let (z (cons x y))
-                (let (w (cdr x))
-                    w)))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (cdr x))
+;                     w)))))))
 
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 1) (let (y 2) (let (z nil)
-                (let (w (if z x y))
-                    w)))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 1) (let (y 2) (let (z nil)
+;                 (let (w (if z x y))
+;                     w)))))))
 
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 1) (let (y 2) (let (z 1)
+;                 (let (w (if z x y))
+;                     w)))))))
 
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 1) (let (y 2) (let (z 1)
-                (let (w (if z x y))
-                    w)))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 1) (let (y 2) (let (z nil)
+;                 (let (w (if z x y))
+;                     (let (a (if w y x))
+;                         a))))))))
 
-
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 1) (let (y 2) (let (z nil)
-                (let (w (if z x y))
-                    (let (a (if w y x))
-                        a))))))))
-
-(traces
-    ->
-    (load-PCEK
-        (term
-            (let (x 3) (let (y 4) (let (z (cons x y))
-                (let (w (future (let (a (car z)) a)))
-                    w)))))))
+; (traces
+;     ->
+;     (load-PCEK
+;         (term
+;             (let (x 3) (let (y 4) (let (z (cons x y))
+;                 (let (w (future (let (a (car z)) a)))
+;                     w)))))))
 
 (define (eval program reduce)
     (let ([results (apply-reduction-relation* reduce (load-PCEK program))])
@@ -541,22 +540,73 @@
                 (let (w (future (let (a (car z)) a)))
                     w)))))
 
-(writeln
-    (apply-reduction-relation* -> (load-PCEK (term program))))
+; (writeln
+;     (apply-reduction-relation* -> (load-PCEK (term program))))
 
 (writeln
     (eval (term program) ->))
 
-(writeln (term (FP-V
-    (ph 2 (ph 5 ∘)))))
+; (writeln (term (FP-V
+;     (ph 2 (ph 5 ∘)))))
 
-(writeln (term (placeholder-not-in-FP (FP-V
-    (ph 2 (ph 5 ∘))))))
+; (writeln (term (placeholder-not-in-FP (FP-V
+;     (ph 2 (ph 5 ∘))))))
 
-(writeln (term (maximum-in-FP -1 (FP-V
-    (ph 2 (ph 5 ∘))))))
+; (writeln (term (maximum-in-FP -1 (FP-V
+;     (ph 2 (ph 5 ∘))))))
 
-(writeln (term (minus-FP
-    1
-    (FP-V
-        (ph 2 (ph 1 (ph 5 ∘)))))))
+; (writeln (term (minus-FP
+;     1
+;     (FP-V
+;         (ph 2 (ph 1 (ph 5 ∘)))))))
+
+(define-term future-program-long
+    (let (a 1)
+        (let (b 2)
+            (let (c 3)
+                (let (d 4)
+                    (let (e 5)
+                        (let (NIL nil)
+                            (let
+                                (f (future
+                                    (let
+                                        (g (future
+                                            (let (h (cons a b))
+                                                h)))
+                                        g)))
+                                (let
+                                    (i (future
+                                        (let (j (cons c d))
+                                            j)))
+                                    (let (k (car f))
+                                        (let (l (cdr i))
+                                            (let (m (cons k l))
+                                                m))))))))))))
+
+(define-term future-program
+    (let (a 1)
+        (let (b 2)
+            (let (c 3)
+                (let (d 4)
+                    (let (e 5)
+                        (let (NIL nil)
+                            (let
+                                (f (future
+                                    (let
+                                        (g (future
+                                            (let (h (cons a b))
+                                                h)))
+                                        g)))
+                                (let (i (car f))
+                                    i)))))))))
+
+(traces
+    ->
+    (load-PCEK (term future-program)))
+
+(writeln
+    (eval (term future-program) ->))
+                                
+(for
+    ([i (apply-reduction-relation* -> (load-PCEK (term future-program)))])
+    (writeln i))
