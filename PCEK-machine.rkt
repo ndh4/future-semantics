@@ -367,7 +367,7 @@
             (M_2 E ((ar x M_3 E) K)))]
 
     [
-        ;(where ((λ (x) N) E_2) (touch (lookup y E_1)))
+        (where ((λ (x) N) E_2) (touch (lookup y E_1)))
         ---"apply"
         (->
             ((let (x (apply y z)) M) E_1 K)
