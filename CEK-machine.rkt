@@ -2,6 +2,8 @@
 
 (require redex)
 
+(provide (rename-out [eval PCEK-eval]))
+
 ;; language definition
 
 (define-language PCEK
@@ -545,20 +547,20 @@
 ; (writeln
 ;     (apply-reduction-relation* -> (load-PCEK (term program))))
 
-(writeln
-    (eval (term program) ->))
+; (writeln
+;     (eval (term program) ->))
 
-(writeln (term (FP-V
-    (ph -2 (ph -1 ∘)))))
+; (writeln (term (FP-V
+;     (ph -2 (ph -1 ∘)))))
 
-(writeln (term (placeholder-not-in-FP (FP-V
-    (ph -2 (ph -1 ∘))))))
+; (writeln (term (placeholder-not-in-FP (FP-V
+;     (ph -2 (ph -1 ∘))))))
 
 
-(writeln (term (minus-FP
-    -2
-    (FP-V
-        (ph -3 (ph -2 (ph -1 ∘)))))))
+; (writeln (term (minus-FP
+;     -2
+;     (FP-V
+;         (ph -3 (ph -2 (ph -1 ∘)))))))
 
 (define-term future-program-long
     (let (a 1)
@@ -644,17 +646,17 @@
 
 ; (traces -> (load-PCEK (term future-program)))
 
-(writeln
-    (eval (term future-program) ->))
+; (writeln
+;     (eval (term future-program) ->))
                                 
 ; (for
 ;     ([i (apply-reduction-relation* -> (load-PCEK (term future-program)))])
 ;     (writeln i))
 
-(traces -> (load-PCEK (term future-program-if)))
+; (traces -> (load-PCEK (term future-program-if)))
 
-(writeln
-    (eval (term future-program-if) ->))
+; (writeln
+;     (eval (term future-program-if) ->))
 
 ; (writeln
 ;     (eval (term future-program-2) ->))
@@ -664,57 +666,60 @@
 ; (writeln (term (lookup f ((f (ph 0 ∘))))))
 
 ; (writeln
-; (apply-reduction-relation ->
-; (first
-; (term
-; (unload-state
-; ,(first
-; (apply-reduction-relation ->
-; (first
-; (apply-reduction-relation ->
-; (first
-; (apply-reduction-relation ->
-; (first
-; (apply-reduction-relation ->
-; (first
-; (apply-reduction-relation ->
-; (first
-; (apply-reduction-relation ->
-; (first
+; ; (apply-reduction-relation ->
+; ; (first
+; ; (term
+; ; (unload-state
+; ; ,(first
+; ; (apply-reduction-relation ->
+; ; (first
+; ; (apply-reduction-relation ->
+; ; (first
+; ; (apply-reduction-relation ->
+; ; (first
+; ; (apply-reduction-relation ->
+; ; (first
+; ; (apply-reduction-relation ->
+; ; (first
+; ; (apply-reduction-relation ->
+; ; (first
 ; (apply-reduction-relation ->
 ; (first
 ; (apply-reduction-relation ->
 ; (first
 ;     (apply-reduction-relation
-(traces
-        ->
-        (load-PCEK
-            (term
-                (let
-                    ; (f
-                    (f (future
-                        (let
-                            (g (future
-                                (let
-                                    (h (future
-                                        (let (i 1) i)))
-                                    h)))
-                            g)))
-                    f)))
-)
-; )))))))))))))))))
+; ; (traces
+;         ->
+;         (load-PCEK
+;             (term
+;                 (let
+;                     ; (f
+;                     (f (future
+;                         (let
+;                             (g (future
+;                                 (let
+;                                     (h (future
+;                                         (let (i 1) i)))
+;                                     h)))
+;                             g)))
+;                     f)))
+; )
+; )
+; ))
+; ))
+; ))))))))))))
 ; )))
     ; #:cache-all? #true))
                     ; f))
 
-(writeln
-    (term
-        (fresh-placeholder
-            (extend
-                x
-                (ph
-                    (fresh-placeholder () ϵ)
-                    ∘)
-                ())
-            ϵ)
-    ))
+; (writeln
+;     (term
+;         (fresh-placeholder
+;             (extend
+;                 x
+;                 (ph
+;                     (fresh-placeholder () ϵ)
+;                     ∘)
+;                 ())
+;             ϵ)
+;     ))
