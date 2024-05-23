@@ -1,6 +1,7 @@
 #lang racket
 
-(require redex)
+(require redex
+         "./input-language.rkt")
 
 (provide PCEK-eval PCEK)
 
@@ -15,7 +16,8 @@
         (let (x (car V)) M)
         (let (x (cdr V)) M)
         (let (x (if V M M)) M)
-        (let (x (apply V V)) M))
+        (let (x (apply V V)) M)
+        (let (x (λ (y) N)) M))
     (E ::= ((x V) ...)) 
     (V ::= PValue Ph-Obj)
     (VUCirc ::= V ∘)
@@ -365,7 +367,7 @@
             (M_2 E ((ar x M_3 E) K)))]
 
     [
-        (where ((λ (x) N) E_2) (touch (lookup y E_1)))
+        ;(where ((λ (x) N) E_2) (touch (lookup y E_1)))
         ---"apply"
         (->
             ((let (x (apply y z)) M) E_1 K)
@@ -442,12 +444,42 @@
 
 ;; load function
 
+
+(define-metafunction Λa-input
+  add-empty-closures : any -> any
+
+  [(add-empty-closures x)
+   x]
+  [(add-empty-closures (let (x V) M))
+   (let (x (add-empty-closures V)) (add-empty-closures M))]
+  [(add-empty-closures (let (x (future M)) M))
+   (let (x (future (add-empty-closures M))) (add-empty-closures M))]
+  [(add-empty-closures (let (x (car y)) M))
+   (let (x (car y)) (add-empty-closures M))]
+  [(add-empty-closures (let (x (cdr y)) M))
+   (let (x (cdr y)) (add-empty-closures M))]
+  [(add-empty-closures (let (x (if y M M)) M))
+   (let (x (if y (add-empty-closures M) (add-empty-closures M))) (add-empty-closures M))]
+  [(add-empty-closures (let (x (apply y z)) M))
+   (let (x (apply y z)) (add-empty-closures M))]
+  [(add-empty-closures c)
+   c]
+  [(add-empty-closures (λ (x) M))
+   ((λ (x) (add-empty-closures M)) ())]
+  [(add-empty-closures (cons x y))
+   (cons x y)])
+
 (define (load-PCEK p)
     (cond
-        [(redex-match? PCEK M p)
-            (term (,p () ϵ))]
+        [(redex-match? Λa-input M p)
+         (let ([changed-program (term (add-empty-closures ,p))])
+           (cond
+             [(redex-match? PCEK M changed-program)
+              (term (,p () ϵ))]
+             [else
+              (raise (format "load-PCEK: expected a valid PCEK program, got: ~a" changed-program))]))]
         [else
-            (raise (format "load-PCEK: expected a valid PCEK program, got: ~a" p))]))
+            (raise (format "load-PCEK: expected a valid Λa program, got: ~a" p))]))
 
 ;; eval function
 (define (eval program reduce)
