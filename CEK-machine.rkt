@@ -2,7 +2,7 @@
 
 (require redex)
 
-(provide (rename-out [eval PCEK-eval]))
+(provide PCEK-eval)
 
 ;; language definition
 
@@ -539,6 +539,9 @@
                 (unload-state
                     ,(first results)))])))
 
+(define (PCEK-eval program)
+    (eval program ->))
+
 (define-term program
     (let (x 3) (let (y 4) (let (z (cons x y))
                 (let (w (future (let (a (car z)) a)))
@@ -723,3 +726,6 @@
 ;                 ())
 ;             ϵ)
 ;     ))
+
+; (define (reduce-step))
+
