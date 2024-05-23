@@ -13,8 +13,7 @@
         (let (x (car V)) M)
         (let (x (cdr V)) M)
         (let (x (if V M M)) M)
-        (let (x (apply V V)) M)
-        (let (x M) M))
+        (let (x (apply V V)) M))
     (E ::= ((x V) ...)) 
     (V ::= PValue Ph-Obj)
     (VUCirc ::= V ∘)
@@ -58,13 +57,13 @@
         (cons
             (unload V_1)
             (unload V_2))]
-    [(unload (ph p V)) V])
+    [(unload (ph p V)) (touch V)])
 
 (define-metafunction PCEK
     touch : V -> PValueUCirc
     
     [(touch (ph p ∘)) ∘]
-    [(touch (ph p V)) V]
+    [(touch (ph p V)) (touch V)]
     [(touch PValue) PValue])
 
 ;; environment meta-functions
@@ -77,6 +76,8 @@
 (define-metafunction PCEK
     lookup : x E -> V
     
+    ; [(lookup x ())
+    ;     ,(raise (format "Unbound variable ~a" (term x)))]
     [(lookup x ((x V) (x_1 V_1) ...)) V]
     [(lookup x ((y V) (x_1 V_1) ...))
         (lookup x ((x_1 V_1) ...))])
@@ -126,7 +127,7 @@
     not-in-FP : p S -> boolean
     
     [(not-in-FP p S)
-        (not (exists-in-FP p (FP S)))])
+        ,(not (term (exists-in-FP p (FP S))))])
 
 (define-metafunction PCEK
     exists-in-FP : p (p ...) -> boolean
@@ -148,8 +149,9 @@
                 (FP S_2)))]
     [(FP (M E K))
         (union-FP
-            (FP-M M E)
-            (FP-K K)
+            (union-FP
+                (FP-M M E)
+                (FP-K K))
             (FP-E E))])
 
 (define-metafunction PCEK
@@ -265,9 +267,9 @@
 (define-metafunction PCEK
     placeholder-not-in-FP : (p ...) -> p
     
-    [(placeholder-not-in-FP ()) 0]
+    [(placeholder-not-in-FP ()) -1]
     [(placeholder-not-in-FP (p ...))
-        ,(+ (apply max (term (p ...))) 1)])
+        ,(- (apply min (term (p ...))) 1)])
 
 ;; side conditions
 
@@ -546,19 +548,17 @@
 (writeln
     (eval (term program) ->))
 
-; (writeln (term (FP-V
-;     (ph 2 (ph 5 ∘)))))
+(writeln (term (FP-V
+    (ph -2 (ph -1 ∘)))))
 
-; (writeln (term (placeholder-not-in-FP (FP-V
-;     (ph 2 (ph 5 ∘))))))
+(writeln (term (placeholder-not-in-FP (FP-V
+    (ph -2 (ph -1 ∘))))))
 
-; (writeln (term (maximum-in-FP -1 (FP-V
-;     (ph 2 (ph 5 ∘))))))
 
-; (writeln (term (minus-FP
-;     1
-;     (FP-V
-;         (ph 2 (ph 1 (ph 5 ∘)))))))
+(writeln (term (minus-FP
+    -2
+    (FP-V
+        (ph -3 (ph -2 (ph -1 ∘)))))))
 
 (define-term future-program-long
     (let (a 1)
@@ -600,13 +600,121 @@
                                 (let (i (car f))
                                     i)))))))))
 
-(traces
-    ->
-    (load-PCEK (term future-program)))
+(define-term future-program-if
+    (let (a 1)
+        (let (b 2)
+            (let (c 3)
+                (let (d 4)
+                    (let (e 5)
+                        (let (NIL nil)
+                            (let
+                                (f (future
+                                    (let
+                                        (g (future
+                                            (let (h (cons a b))
+                                                h)))
+                                        g)))
+                                (let
+                                    (i (if NIL
+                                        (let (j (car f)) j)
+                                        (let (j (cdr f)) j)))
+                                    i)))))))))
+
+; (define-term future-program-2
+;     (let (a 1)
+;         (let (b 2)
+;             (let (c 3)
+;                 (let (d 4)
+;                     (let (e 5)
+;                         (let (NIL nil)
+;                             (let
+;                                 (f (future
+;                                     (let
+;                                         (g (future
+;                                             (let
+;                                                 (h (future
+;                                                     (let (i (cons a b)) i)))
+;                                                 h)))
+;                                             ; (let (h (cons a b))
+;                                             ;     h)))
+;                                         g)))
+;                                 ; f))))))))
+;                                 (let (i (car f))
+;                                     i)))))))))
+
+; (traces -> (load-PCEK (term future-program)))
 
 (writeln
     (eval (term future-program) ->))
                                 
-(for
-    ([i (apply-reduction-relation* -> (load-PCEK (term future-program)))])
-    (writeln i))
+; (for
+;     ([i (apply-reduction-relation* -> (load-PCEK (term future-program)))])
+;     (writeln i))
+
+(traces -> (load-PCEK (term future-program-if)))
+
+(writeln
+    (eval (term future-program-if) ->))
+
+; (writeln
+;     (eval (term future-program-2) ->))
+
+; (traces -> (load-PCEK (term future-program-2)))
+
+; (writeln (term (lookup f ((f (ph 0 ∘))))))
+
+; (writeln
+; (apply-reduction-relation ->
+; (first
+; (term
+; (unload-state
+; ,(first
+; (apply-reduction-relation ->
+; (first
+; (apply-reduction-relation ->
+; (first
+; (apply-reduction-relation ->
+; (first
+; (apply-reduction-relation ->
+; (first
+; (apply-reduction-relation ->
+; (first
+; (apply-reduction-relation ->
+; (first
+; (apply-reduction-relation ->
+; (first
+; (apply-reduction-relation ->
+; (first
+;     (apply-reduction-relation
+(traces
+        ->
+        (load-PCEK
+            (term
+                (let
+                    ; (f
+                    (f (future
+                        (let
+                            (g (future
+                                (let
+                                    (h (future
+                                        (let (i 1) i)))
+                                    h)))
+                            g)))
+                    f)))
+)
+; )))))))))))))))))
+; )))
+    ; #:cache-all? #true))
+                    ; f))
+
+(writeln
+    (term
+        (fresh-placeholder
+            (extend
+                x
+                (ph
+                    (fresh-placeholder () ϵ)
+                    ∘)
+                ())
+            ϵ)
+    ))
