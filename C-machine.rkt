@@ -3,7 +3,8 @@
 (require redex
          "./input-language.rkt")
 
-(provide (rename-out [eval C-eval]))
+(provide (rename-out [eval C-eval])
+         -->c)
 
 
 (define-language Λa

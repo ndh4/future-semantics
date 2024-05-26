@@ -3,7 +3,8 @@
 (require redex
          "./input-language.rkt")
 
-(provide PCEK-eval PCEK)
+(provide PCEK-eval PCEK
+         (rename-out [-> ->PCEK]))
 
 ;; language definition
 
