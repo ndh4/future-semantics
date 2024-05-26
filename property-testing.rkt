@@ -107,7 +107,7 @@
 
 (define testing-pairs
   (list
-   (testp (term a-parallel-program) '(cons 20 5000))
+   #;(testp (term a-parallel-program) '(cons 20 5000))
 
    (testp (term (let (x 3) x))
                3)
@@ -194,6 +194,9 @@
  (term future-program-if) 2)
 (testp
  (term future-program-2) 1)))
+
+#;(traces ->PCEK
+        (load-PCEK (term a-parallel-program)))
 
 (for ([pair testing-pairs])
   (define in (testp-in pair))

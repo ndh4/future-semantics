@@ -3,7 +3,7 @@
 (require redex
          "./input-language.rkt")
 
-(provide PCEK-eval PCEK
+(provide PCEK-eval PCEK load-PCEK
          (rename-out [-> ->PCEK]))
 
 ;; language definition
@@ -95,7 +95,8 @@
     [(substitute-S p V (f-let (p S_1) S_2))
         (f-let (p (substitute-S p V S_1)) S_2)]
     [(substitute-S p_1 V (f-let (p_2 S_1) S_2))
-        (f-let (p_2 (substitute-S p V S_1)) (substitute-S p V S_2))]
+        (f-let (p_2 (substitute-S p_1 V S_1)) (substitute-S p_1 V S_2))
+        (side-condition (not (equal? (term p_1) (term p_2))))]
         
     [(substitute-S p V (M E K)) (M (substitute-E p V E) (substitute-K p V K))]
 
@@ -394,24 +395,24 @@
             (M (extend y (lookup x E_1) E_2) K))]
 
     [
-        (where p (fresh-placeholder E_2 K_2))
+        (where p_1 (fresh-placeholder E_2 K_2))
         ---"fork"
         (->
             (M E_1 (kappa_1 ((ar† x N E_2) K_2)))
             (f-let
-                (p (M E_1 (kappa_1 ϵ)))
-                (N (extend x (ph p ∘) E_2) K_2)))]
+                (p_1 (M E_1 (kappa_1 ϵ)))
+                (N (extend x (ph p_1 ∘) E_2) K_2)))]
 
     [
         ---"join"
         (->
-            (f-let (p (x E ϵ)) S)
-            (substitute-S p (lookup x E) S))]
+            (f-let (p_1 (x E ϵ)) S)
+            (substitute-S p_1 (lookup x E) S))]
 
     [
         ---"join-error"
         (->
-            (f-let (p error) S)
+            (f-let (p_1 error) S)
             error)]
     
     [
@@ -426,22 +427,22 @@
         (-> S_2 S_4)
         ---"parallel-both"
         (->
-            (f-let (p S_1) S_2)
-            (f-let (p S_3) S_4))]
+            (f-let (p_1 S_1) S_2)
+            (f-let (p_1 S_3) S_4))]
 
     [
         (-> S_1 S_3)
         ---"parallel-inner"
         (->
-            (f-let (p S_1) S_2)
-            (f-let (p S_3) S_2))]
+            (f-let (p_1 S_1) S_2)
+            (f-let (p_1 S_3) S_2))]
 
     [
         (-> S_2 S_4)
         ---"parallel-outer"
         (->
-            (f-let (p S_1) S_2)
-            (f-let (p S_1) S_4))])
+            (f-let (p_1 S_1) S_2)
+            (f-let (p_1 S_1) S_4))])
 
 ;; load function
 
