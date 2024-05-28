@@ -107,7 +107,7 @@
 
 (define testing-pairs
   (list
-   #;(testp (term a-parallel-program) '(cons 20 5000))
+   (testp (term a-parallel-program) '(cons 20 5000))
 
    (testp (term (let (x 3) x))
                3)

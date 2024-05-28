@@ -178,36 +178,50 @@
     FP-M : M E -> (p ...)
     
     [(FP-M x E) (FP-E E)]
-    [(FP-M (let (x V) M))
-        (union-FP
-            (FP-V V)
-            (FP-M M))]
-    [(FP-M (let (x (future M_1)) M_2))
-        (union-FP
-            (FP-M M_1)
-            (FP-M M_2))]
-    [(FP-M (let (x (car V)) M))
-        (union-FP
-            (FP-V V)
-            (FP-M M))]
-    [(FP-M (let (x (cdr V)) M))
-        (union-FP
-            (FP-V V)
-            (FP-M M))]
-    [(FP-M (let (x (if V M_1 M_2)) M_3))
-        (union-FP
-            (FP-V V)
-            (FP-M M_3))]
-    [(FP-M (let (x (apply V_1 V_2)) M))
+    [(FP-M (let (x V) M) E)
         (union-FP
             (union-FP
-                (FP-V V_1)
-                (FP-V V_2))
-            (FP-M M))]
-    [(FP-M (let (x M) M))
+                (FP-V V)
+                (FP-M M E))
+            (FP-E E))]
+    [(FP-M (let (x (future M_1)) M_2) E)
         (union-FP
-            (FP-V V)
-            (FP-M M))])
+            (union-FP
+                (FP-M M_1 E)
+                (FP-M M_2 E))
+            (FP-E E))]
+    [(FP-M (let (x (car V)) M) E)
+        (union-FP
+            (union-FP
+                (FP-V V)
+                (FP-M M E))
+            (FP-E E))]
+    [(FP-M (let (x (cdr V)) M) E)
+        (union-FP
+            (union-FP
+                (FP-V V)
+                (FP-M M E))
+            (FP-E E))]
+    [(FP-M (let (x (if V M_1 M_2)) M_3) E)
+        (union-FP
+            (union-FP
+                (FP-V V)
+                (FP-M M_3 E))
+            (FP-E E))]
+    [(FP-M (let (x (apply V_1 V_2)) M) E)
+        (union-FP
+            (union-FP
+                (union-FP
+                    (FP-V V_1)
+                    (FP-V V_2))
+                (FP-M M E))
+            (FP-E E))]
+    [(FP-M (let (x M) M) E)
+        (union-FP
+            (union-FP
+                (FP-V V)
+                (FP-M M E))
+            (FP-E E))])
 
 (define-metafunction PCEK
     FP-V : V -> (p ...)

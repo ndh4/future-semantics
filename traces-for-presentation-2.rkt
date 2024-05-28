@@ -12,7 +12,10 @@
           (f (future
               (let
                   (g (future
-                      (let (h (cons a b))
+                      (let
+                          (h (future
+                              (let (i (cons a b))
+                                i)))
                         h)))
                 g)))
         (let (i (car f))
